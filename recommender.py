@@ -3,19 +3,20 @@ import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-# -------------------------
-# Safe file path (IMPORTANT)
-# -------------------------
 BASE_DIR = os.path.dirname(__file__)
 movies_path = os.path.join(BASE_DIR, "movies.csv")
 
+if not os.path.exists(movies_path):
+    raise FileNotFoundError("movies.csv missing in repo")
+
 movies = pd.read_csv(movies_path)
 
-# -------------------------
-# Content based filtering
-# -------------------------
+# safe column check
+if "title" not in movies.columns or "genres" not in movies.columns:
+    raise ValueError("CSV must contain 'title' and 'genres' columns")
+
 movies["genres"] = movies["genres"].fillna("")
-movies["genres"] = movies["genres"].str.replace("|", " ", regex=False)
+movies["genres"] = movies["genres"].astype(str).str.replace("|", " ")
 
 tfidf = TfidfVectorizer(stop_words="english")
 tfidf_matrix = tfidf.fit_transform(movies["genres"])
@@ -24,11 +25,7 @@ cosine_sim = cosine_similarity(tfidf_matrix)
 
 indices = pd.Series(movies.index, index=movies["title"]).drop_duplicates()
 
-# -------------------------
-# Recommendation function
-# -------------------------
 def recommend(title, top_n=5):
-
     if title not in indices:
         return ["Movie not found"]
 
